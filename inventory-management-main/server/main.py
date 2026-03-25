@@ -2,6 +2,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
 from pydantic import BaseModel
+from datetime import datetime, timedelta
+import random
 from mock_data import inventory_items, orders, demand_forecasts, backlog_items, spending_summary, monthly_spending, category_spending, recent_transactions, purchase_orders
 
 app = FastAPI(title="Factory Inventory Management System")
@@ -119,6 +121,30 @@ class CreatePurchaseOrderRequest(BaseModel):
     unit_cost: float
     expected_delivery_date: str
     notes: Optional[str] = None
+
+class RestockingRecommendation(BaseModel):
+    sku: str
+    name: str
+    category: str
+    warehouse: str
+    current_stock: int
+    reorder_point: int
+    quantity_to_order: int
+    unit_cost: float
+    estimated_cost: float
+    demand_trend: Optional[str] = None
+    forecasted_demand: Optional[int] = None
+    priority_label: str
+
+class RestockingOrderItem(BaseModel):
+    sku: str
+    name: str
+    quantity: int
+    unit_price: float
+
+class CreateRestockingOrderRequest(BaseModel):
+    items: List[RestockingOrderItem]
+    total_value: float
 
 # API endpoints
 @app.get("/")
@@ -303,6 +329,82 @@ def get_monthly_trends():
     result = list(months.values())
     result.sort(key=lambda x: x['month'])
     return result
+
+@app.get("/api/restocking/recommendations", response_model=List[RestockingRecommendation])
+def get_restocking_recommendations():
+    """Get recommended items to restock, sorted by priority (low-stock + demand trend)"""
+    demand_by_sku = {f['item_sku']: f for f in demand_forecasts}
+
+    recommendations = []
+    for item in inventory_items:
+        if item['quantity_on_hand'] > item['reorder_point']:
+            continue  # not low stock, skip
+
+        forecast = demand_by_sku.get(item['sku'])
+        trend = forecast['trend'] if forecast else None
+        forecasted_demand = forecast['forecasted_demand'] if forecast else None
+
+        # Bring stock up to 2x reorder_point
+        quantity_to_order = max(1, (item['reorder_point'] * 2) - item['quantity_on_hand'])
+        estimated_cost = round(quantity_to_order * item['unit_cost'], 2)
+
+        if trend == 'increasing':
+            priority_label = 'High'
+        elif trend == 'stable':
+            priority_label = 'Medium'
+        else:
+            priority_label = 'Low'
+
+        recommendations.append({
+            'sku': item['sku'],
+            'name': item['name'],
+            'category': item['category'],
+            'warehouse': item['warehouse'],
+            'current_stock': item['quantity_on_hand'],
+            'reorder_point': item['reorder_point'],
+            'quantity_to_order': quantity_to_order,
+            'unit_cost': item['unit_cost'],
+            'estimated_cost': estimated_cost,
+            'demand_trend': trend,
+            'forecasted_demand': forecasted_demand,
+            'priority_label': priority_label
+        })
+
+    priority_order = {'High': 0, 'Medium': 1, 'Low': 2}
+    recommendations.sort(key=lambda x: priority_order.get(x['priority_label'], 99))
+    return recommendations
+
+
+@app.post("/api/restocking/orders", response_model=Order)
+def create_restocking_order(request: CreateRestockingOrderRequest):
+    """Submit a restocking order; it is added to the live orders list"""
+    now = datetime.now()
+    lead_days = random.randint(7, 21)
+    delivery_date = now + timedelta(days=lead_days)
+
+    order_id = str(len(orders) + 1)
+    order_number = f"RST-{now.year}-{order_id.zfill(4)}"
+
+    new_order = {
+        'id': order_id,
+        'order_number': order_number,
+        'customer': 'Internal Restocking',
+        'items': [
+            {'sku': i.sku, 'name': i.name, 'quantity': i.quantity, 'unit_price': i.unit_price}
+            for i in request.items
+        ],
+        'status': 'Restocking',
+        'order_date': now.isoformat(),
+        'expected_delivery': delivery_date.isoformat(),
+        'total_value': request.total_value,
+        'actual_delivery': None,
+        'warehouse': None,
+        'category': None
+    }
+
+    orders.append(new_order)
+    return new_order
+
 
 if __name__ == "__main__":
     import uvicorn

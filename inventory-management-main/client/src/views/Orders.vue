@@ -25,6 +25,10 @@
           <div class="stat-label">{{ t('status.backordered') }}</div>
           <div class="stat-value">{{ getOrdersByStatus('Backordered').length }}</div>
         </div>
+        <div class="stat-card" style="border-left: 3px solid #7c3aed;">
+          <div class="stat-label">Restocking</div>
+          <div class="stat-value" style="color: #7c3aed;">{{ getOrdersByStatus('Restocking').length }}</div>
+        </div>
       </div>
 
       <div class="card">
@@ -63,7 +67,7 @@
                 </td>
                 <td class="col-status">
                   <span :class="['badge', getOrderStatusClass(order.status)]">
-                    {{ t(`status.${order.status.toLowerCase()}`) }}
+                    {{ order.status === 'Restocking' ? 'Restocking' : t(`status.${order.status.toLowerCase()}`) }}
                   </span>
                 </td>
                 <td class="col-date">{{ formatDate(order.order_date) }}</td>
@@ -138,7 +142,8 @@ export default {
         'Delivered': 'success',
         'Shipped': 'info',
         'Processing': 'warning',
-        'Backordered': 'danger'
+        'Backordered': 'danger',
+        'Restocking': 'restocking'
       }
       return statusMap[status] || 'info'
     }

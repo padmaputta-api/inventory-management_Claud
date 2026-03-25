@@ -25,6 +25,9 @@
           <router-link to="/reports" :class="{ active: $route.path === '/reports' }">
             Reports
           </router-link>
+          <router-link to="/restocking" :class="{ active: $route.path === '/restocking' }">
+            Restocking
+          </router-link>
         </nav>
         <LanguageSwitcher />
         <ProfileMenu
@@ -33,10 +36,36 @@
         />
       </div>
     </header>
-    <FilterBar />
-    <main class="main-content">
-      <router-view />
-    </main>
+    <div class="app-body">
+      <aside :class="['sidebar', { 'sidebar-collapsed': sidebarCollapsed }]">
+        <button class="sidebar-toggle-btn" @click="toggleSidebar" :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'">
+          <svg v-if="!sidebarCollapsed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+          <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </button>
+        <nav class="sidebar-nav">
+          <router-link
+            v-for="item in navItems"
+            :key="item.path"
+            :to="item.path"
+            :title="sidebarCollapsed ? item.label : ''"
+            :class="['sidebar-link', { 'sidebar-link-active': item.path === '/' ? $route.path === '/' : $route.path.startsWith(item.path) }]"
+          >
+            <span class="sidebar-icon" v-html="item.icon"></span>
+            <span class="sidebar-label">{{ item.label }}</span>
+          </router-link>
+        </nav>
+      </aside>
+      <div class="content-wrapper">
+        <FilterBar />
+        <main class="main-content">
+          <router-view />
+        </main>
+      </div>
+    </div>
 
     <ProfileDetailsModal
       :is-open="showProfileDetails"
@@ -77,6 +106,51 @@ export default {
   setup() {
     const { currentUser } = useAuth()
     const { t } = useI18n()
+
+    const sidebarCollapsed = ref(typeof window !== 'undefined' && window.innerWidth < 1024)
+
+    const toggleSidebar = () => {
+      sidebarCollapsed.value = !sidebarCollapsed.value
+    }
+
+    const navItems = [
+      {
+        path: '/',
+        label: 'Overview',
+        exact: true,
+        icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>`
+      },
+      {
+        path: '/inventory',
+        label: 'Inventory',
+        icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>`
+      },
+      {
+        path: '/orders',
+        label: 'Orders',
+        icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`
+      },
+      {
+        path: '/spending',
+        label: 'Finance',
+        icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 1 0 0 7h5a3.5 3.5 0 1 1 0 7H6"/></svg>`
+      },
+      {
+        path: '/demand',
+        label: 'Demand',
+        icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>`
+      },
+      {
+        path: '/reports',
+        label: 'Reports',
+        icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>`
+      },
+      {
+        path: '/restocking',
+        label: 'Restocking',
+        icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>`
+      }
+    ]
     const showProfileDetails = ref(false)
     const showTasks = ref(false)
     const apiTasks = ref([])
@@ -155,7 +229,10 @@ export default {
       tasks,
       addTask,
       deleteTask,
-      toggleTask
+      toggleTask,
+      sidebarCollapsed,
+      toggleSidebar,
+      navItems
     }
   }
 }
@@ -467,6 +544,11 @@ tbody tr:hover {
   color: #1e40af;
 }
 
+.badge.restocking {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
 .loading {
   text-align: center;
   padding: 3rem;
@@ -482,5 +564,158 @@ tbody tr:hover {
   border-radius: 8px;
   margin: 1rem 0;
   font-size: 0.938rem;
+}
+
+/* ── App body layout ─────────────────────────── */
+.app-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ── Sidebar ─────────────────────────────────── */
+.sidebar {
+  width: 220px;
+  min-width: 220px;
+  background: #ffffff;
+  border-right: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.25s ease, min-width 0.25s ease;
+  overflow: hidden;
+  position: sticky;
+  top: 70px; /* matches top-nav height */
+  height: calc(100vh - 70px);
+  z-index: 50;
+  flex-shrink: 0;
+}
+
+.sidebar-collapsed {
+  width: 56px;
+  min-width: 56px;
+}
+
+/* Toggle button */
+.sidebar-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #64748b;
+  flex-shrink: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+  margin: 16px auto 8px;
+  align-self: flex-end;
+  margin-right: 12px;
+}
+
+.sidebar-collapsed .sidebar-toggle-btn {
+  align-self: center;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.sidebar-toggle-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* Nav links */
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 8px;
+  gap: 2px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 7px;
+  color: #64748b;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+  overflow: hidden;
+}
+
+.sidebar-link:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.sidebar-link-active {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.sidebar-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+
+.sidebar-label {
+  opacity: 1;
+  transition: opacity 0.15s ease;
+  overflow: hidden;
+}
+
+.sidebar-collapsed .sidebar-label {
+  opacity: 0;
+  width: 0;
+  pointer-events: none;
+}
+
+.sidebar-collapsed .sidebar-link {
+  justify-content: center;
+  padding: 9px 0;
+}
+
+/* Content wrapper (to the right of sidebar) */
+.content-wrapper {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Override .main-content to remove the left/right padding that assumed full-width */
+.app-body .main-content {
+  margin: 0 auto;
+  padding: 1.5rem 2rem;
+  width: 100%;
+  max-width: 1600px;
+}
+
+/* ── Mobile: auto-collapse at <1024px ─── */
+@media (max-width: 1023px) {
+  .sidebar {
+    width: 56px;
+    min-width: 56px;
+  }
+  .sidebar-label {
+    opacity: 0;
+    width: 0;
+    pointer-events: none;
+  }
+  .sidebar-link {
+    justify-content: center;
+    padding: 9px 0;
+  }
 }
 </style>
